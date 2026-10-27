@@ -2,12 +2,14 @@
 #define ESPIROMETRE
 
 #include "freertos/idf_additions.h"
+#include <stdint.h>
+#include <sys/types.h>
 
 // Definitions of I2C
 #define I2C_PORT_NUM_0 0
 #define SDA_IO 12
 #define SCL_IO 14
-#define SCL_FREQ 100000
+#define SCL_FREQ 400000
 #define DEV_ADDR 0xFF
 #define DATA_LENGTH 11
 // Definition of a Kilobyte
@@ -33,7 +35,14 @@ typedef volatile struct {
 } env_var_t;
 
 // Block that will contain the data of the sensor
-volatile short I2C_read[BLOCK_SIZE] = {0};
+volatile uint16_t I2C_read[BLOCK_SIZE] = {0};
+// Possition of the current read
+volatile uint16_t pos = 0;
+
+/**
+ * @brief		Create the tasks that will be running all the time
+ */
+void create_tasks();
 
 /**
  * @brief		Estabishes a serial connection to the computer

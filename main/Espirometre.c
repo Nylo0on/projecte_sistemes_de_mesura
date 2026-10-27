@@ -3,17 +3,13 @@
 #include <stdlib.h>
 
 // FreeRTOS libraries
-#include "esp_err.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/idf_additions.h"
 #include "freertos/timers.h"
 #include "freertos/semphr.h"
 
 // Driver libraries
 #include "driver/i2c.h"
 #include "driver/i2c_master.h"
-#include "hal/i2c_types.h"
-#include "soc/clk_tree_defs.h"
 
 // Personal libraries
 #include "Espirometre.h"
@@ -26,11 +22,23 @@ i2c_master_dev_handle_t dev_handle;
 void app_main(void)
 {
 	config_I2C();
-	xTimerCreate("ENV", pdMS_TO_TICKS(1000), pdTRUE, (void *const) 1, get_env_var);
-	xTaskCreate(read_I2C, "I2C", 1*KB, NULL, portPRIVILEGE_BIT|2, &I2C_handle);
+	create_tasks();
+	while(1){
+		vTaskDelay(pdMS_TO_TICKS(1000));
+		process_data();
+		send_data();
+	}
 }
 
-void get_env_var(TimerHandle_t xTimer);
+void create_tasks(){
+	xTimerCreate("ENV", pdMS_TO_TICKS(1000), pdTRUE, (void *const) 1, get_env_var);
+	xTaskCreatePinnedToCore(read_I2C, "I2C", 1*KB, NULL, 100, &I2C_handle, 1);
+}
+
+void get_env_var(TimerHandle_t xTimer){
+	printf("Getting enviromental variables");
+	return;
+}
 
 int config_I2C(){
 	i2c_master_bus_config_t conf = {
@@ -55,7 +63,7 @@ int config_I2C(){
 void read_I2C(void *args){
 	short buff[2];
 	while(1){
-		i2c_master_receive(dev_handle, buff, DATA_LENGTH, -1);
+		i2c_master_receive(dev_handle, (void *) buff, DATA_LENGTH, -1);
 	}
 }
 
