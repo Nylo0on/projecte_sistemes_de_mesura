@@ -10,14 +10,17 @@
 // Personal libraries
 #include "Espirometre.h"
 #include "sensor.h"
-#include "runtime.h"
 #include <stdint.h>
+
 // Global variables
 spi_device_handle_t dev_handle;
 env_var_t env_var = {0};
-uint32_t read_temp = 0;
+uint32_t read_temp = 0, rdy = 0;
 uint64_t t0 = 0, t1 = 0, dt = 0;
-uint32_t aux;
+volatile uint32_t *DMA_buff;
+volatile mesure_t data[BLOCK_SIZE] = {0};
+volatile uint16_t pos = 0;
+volatile uint16_t block = 0;
 
 void get_env_var(void *param){
 	while(1){
@@ -98,14 +101,27 @@ void read_SPI(void *param){
 }
 
 void before_SPI(spi_transaction_t *trans){
-	t0=esp_timer_get_time();
-	dt = t0-t1;
-	t1=esp_timer_get_time();
 }
 
 void after_SPI(spi_transaction_t *trans){
-	aux = *DMA_buff;
+	t0=esp_timer_get_time();
+	dt = t0-t1;
+	t1=esp_timer_get_time();
+	*DMA_buff = SPI_SWAP_DATA_RX(*DMA_buff, 32);
 	data[pos] = (mesure_t) {*DMA_buff,dt};
 	pos	= (pos+1)%BLOCK_SIZE;
-	block = pos < HBLOCK_SIZE ? HBLOCK_SIZE:0; 
+	switch (block) {
+		case 0:
+			if(pos == 0){
+				block = HBLOCK_SIZE;
+				rdy = 1;
+			}
+			break;
+		case HBLOCK_SIZE:
+			if(pos == HBLOCK_SIZE){
+				block = 0;
+				rdy = 1;
+			}
+			break;
+	}
 }

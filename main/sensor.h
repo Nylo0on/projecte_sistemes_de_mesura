@@ -2,6 +2,7 @@
 #define SENSOR_H
 
 #include "driver/spi_master.h"
+#include "Espirometre.h"
 
 // Definitions of the SPI
 #define NOT_CONFIG -1
@@ -25,19 +26,19 @@ typedef volatile struct {
 /**
  * @brief			Data that will be sent to the PC
  *
- * @var p			Pressure of the sensor
- * @var t			Time respect the last mesure
+ * @var data		Data of the sensor
+ * @var dt			Time respect the last mesure
  */
 typedef volatile struct {
-	uint32_t p;
+	uint32_t data;
 	uint32_t dt;
 } mesure_t;
 
 // Global variables
-extern spi_device_handle_t dev_handle;
 extern env_var_t env_var;
-extern uint32_t read_temp;
-extern uint64_t t0, t1, dt;
+extern uint32_t read_temp, rdy;
+extern volatile mesure_t data[BLOCK_SIZE];
+extern volatile uint16_t block;
 
 /**
  * @breif			Gets the enviromental variables to calibrate the models
